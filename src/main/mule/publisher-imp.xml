@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="9ad654df-3d02-4fa6-983d-3b5ea0325903" >
+		<jms:active-mq-connection username="admin" password="admin">
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="publisher-impFlow" doc:id="f5d77baa-6c78-4eee-bd2a-78adf6d84fc3" >
+		<flow-ref doc:name="getdetails_from_sfdc" doc:id="4e1f0640-2f78-4a90-a80a-1db1890b6b6b" name="getdetails_from_sfdc"/>
+		<json-logger:logger doc:name="before status update" doc:id="e5313a1f-fdda-4771-a976-baedb13ac6a9" config-ref="JSON_Logger_Config" message="before status update"/>
+		<foreach doc:name="For Each" doc:id="b05dea1f-769c-498e-9b06-a7637c9986c3" collection="#[payload.compositeResponse.body.records[0].Id]">
+			<set-variable value="#[payload]" doc:name="Set Variable" doc:id="9f7cfd73-a7f3-4a9e-840f-8f40396346fc" variableName="sfdcID"/>
+			<flow-ref doc:name="updatedetails_In_sfdc" doc:id="54d57f36-513b-4b39-99eb-d98faacc1290" name="updatedetails_In_sfdc" />
+			<ee:transform doc:name="Transform Message" doc:id="bed9f9ee-e767-49f0-b0e5-c001423f6c50">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+eventId: uuid(),
+eventType: 2,
+eventData:[
+{
+internalId: vars.sfdcID}],
+source: vars.SDtype.source,
+targets:vars.SDtype.targets.system,
+dataType:vars.SDtype.objectType,
+timeStamp:now()
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<jms:publish doc:name="Publish" doc:id="ff2c4065-a86a-4148-884f-ceaecf41fc10" config-ref="JMS_Config" destination="SALESFORCE-QUEUE" />
+		</foreach>
+		<json-logger:logger doc:name="after status update" doc:id="6cf3fba7-dcbd-4add-a55c-909fa98fdf08" config-ref="JSON_Logger_Config" message="after status update"/>
+	</flow>
+	<sub-flow name="getdetails_from_sfdc" doc:id="be715068-337c-4aa6-8692-2edd91f75f9a" >
+		<ee:transform doc:name="select query" doc:id="25f8c601-67ef-4408-ad2d-f47d307046fd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "compositeRequest": [
+      {
+        "method" : "GET",
+           "url" : "/services/data/v55.0/query/?q=SELECT Id FROM Billing_junction__c WHERE Integration_Status__c = 'New'",
+           "referenceId" : "billing"
+}]}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="request-flow" doc:id="ff1528bc-3673-41ae-9fdc-181518182347" name="sfdc-request-flow"/>
+	</sub-flow>
+	<sub-flow name="updatedetails_In_sfdc" doc:id="0ad82e66-c3d7-44a2-ab73-30fa8e2d1849" >
+		<ee:transform doc:name="status update" doc:id="483d453e-090e-476f-915f-b2bade97cbea">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "compositeRequest": [
+       {
+        "method" : "PATCH",
+           "url" : "/services/data/v55.0/sobjects/Billing_junction__c/" ++ payload,
+           "referenceId" : "billing",
+           "body" : 
+           { Integration_Status__c:'In Progress'}  
+ 
+       }]}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="request-flow" doc:id="dd8a28d1-36df-4965-8ce5-a735d96320f1" name="sfdc-request-flow" />
+	</sub-flow>
+</mule>

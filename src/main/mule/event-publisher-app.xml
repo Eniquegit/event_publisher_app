@@ -1,23 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="8a0004af-7a4b-40bf-811f-f2c766195a08" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<json-logger:config name="JSON_Logger_Config" doc:name="JSON Logger Config" doc:id="7da01aee-6c6a-4bab-8442-9a4f09858160" environment="${mule.env}"/>
+	<configuration-properties doc:name="Configuration properties" doc:id="cf65d5f7-012d-4ad3-be0e-97e914534498" file="mule.properties" />
 	<flow name="event-publisher-appFlow" doc:id="9ceeec4f-12ef-4acc-a1eb-16db956ec556" >
-		<scheduler doc:name="Scheduler" doc:id="ab3dbafa-7b12-49ce-b8e9-94cd9e7d5542" >
-			<scheduling-strategy >
-				<fixed-frequency />
-			</scheduling-strategy>
-		</scheduler>
-		<ee:transform doc:name="Transform Message" doc:id="d68587bf-152e-4ac6-b0bb-8f955096886a">
+		<http:listener doc:name="Listener" doc:id="f7b91982-25bb-430a-914a-026841382493" config-ref="HTTP_Listener_config" path="/publish"/>
+		<json-logger:logger doc:name="start" doc:id="6610a93c-1a88-4e8a-b342-5561cd93a282" message="start" config-ref="JSON_Logger_Config"/>
+		<ee:transform doc:name="" doc:id="d68587bf-152e-4ac6-b0bb-8f955096886a">
 			<ee:message>
-				<ee:set-payload><![CDATA[%dw 2.0
-output application/java
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="SDtype" ><![CDATA[%dw 2.0
+output application/json
 ---
 {
-}]]></ee:set-payload>
-			</ee:message>
+"objectType": "dbAccount",
+"source": "salesforce",
+"baseurl": "salessapi.us-e2.cloudhub.io/api/createcomposite",
+"qtopublish": "SALESFORCE-QUEUE",
+ "targets":[
+{
+"system": "database"
+}]}]]></ee:set-variable>
+			</ee:variables>
 		</ee:transform>
+		<flow-ref doc:name="publisher-impFlow" doc:id="d5960f70-4289-4f78-a255-7f7800583c01" name="publisher-impFlow"/>
+		<json-logger:logger doc:name="end" doc:id="4bc7a745-0b69-4d40-863d-82940967e1a0" config-ref="JSON_Logger_Config" message="end"/>
 	</flow>
 </mule>
