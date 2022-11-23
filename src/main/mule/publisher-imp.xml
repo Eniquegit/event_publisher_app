@@ -15,7 +15,7 @@ http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/m
 		<flow-ref doc:name="getdetails_from_sfdc" doc:id="4e1f0640-2f78-4a90-a80a-1db1890b6b6b" name="getdetails_from_sfdc"/>
 		<json-logger:logger doc:name="before status update" doc:id="e5313a1f-fdda-4771-a976-baedb13ac6a9" config-ref="JSON_Logger_Config" message="before status update"/>
 		<foreach doc:name="For Each" doc:id="b05dea1f-769c-498e-9b06-a7637c9986c3" collection="#[payload.compositeResponse.body.records[0].Id]">
-			<set-variable value="#[payload]" doc:name="Set Variable" doc:id="9f7cfd73-a7f3-4a9e-840f-8f40396346fc" variableName="sfdcID"/>
+			<set-variable value="#[payload]" doc:name="sfdcID" doc:id="9f7cfd73-a7f3-4a9e-840f-8f40396346fc" variableName="sfdcID"/>
 			<flow-ref doc:name="updatedetails_In_sfdc" doc:id="54d57f36-513b-4b39-99eb-d98faacc1290" name="updatedetails_In_sfdc" />
 			<ee:transform doc:name="Transform Message" doc:id="bed9f9ee-e767-49f0-b0e5-c001423f6c50">
 			<ee:message>
@@ -54,7 +54,7 @@ output application/json
 }]}]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<flow-ref doc:name="request-flow" doc:id="ff1528bc-3673-41ae-9fdc-181518182347" name="sfdc-request-flow"/>
+		<flow-ref doc:name="sfdc-request-flow" doc:id="ff1528bc-3673-41ae-9fdc-181518182347" name="sfdc-request-flow"/>
 	</sub-flow>
 	<sub-flow name="updatedetails_In_sfdc" doc:id="0ad82e66-c3d7-44a2-ab73-30fa8e2d1849" >
 		<ee:transform doc:name="status update" doc:id="483d453e-090e-476f-915f-b2bade97cbea">
@@ -74,6 +74,6 @@ output application/json
        }]}]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<flow-ref doc:name="request-flow" doc:id="dd8a28d1-36df-4965-8ce5-a735d96320f1" name="sfdc-request-flow" />
+		<flow-ref doc:name="sfdc-request-flow" doc:id="dd8a28d1-36df-4965-8ce5-a735d96320f1" name="sfdc-request-flow" />
 	</sub-flow>
 </mule>
